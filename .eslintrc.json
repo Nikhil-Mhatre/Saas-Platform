@@ -1,16 +1,17 @@
 {
-  "extends": ["next/core-web-vitals", "airbnb-base"],
-  "rules": {
-    "no-unused-vars": "error",
-    "quotes": ["error", "single", { "allowTemplateLiterals": true }],
-    "indent": ["error", 2],
-    "block-spacing": ["error", "never"],
-    "import/extensions": [
-      "error",
-      "ignorePackages",
-      { "js": "never", "jsx": "never", "ts": "never", "tsx": "never" }
-    ],
-    "import/prefer-default-export": "off",
-    "object-curly-newline": "off"
-  }
+ "extends": ["next/core-web-vitals", "airbnb-base"],
+ "rules": {
+  "no-unused-vars": "error",
+  "quotes": ["error", "single", { "allowTemplateLiterals": true }],
+  "indent": ["error", 2],
+  "block-spacing": ["error", "never"],
+  "import/extensions": [
+   "error",
+   "ignorePackages",
+   { "js": "never", "jsx": "never", "ts": "never", "tsx": "never" }
+  ],
+  "import/prefer-default-export": "off",
+  "object-curly-newline": "off",
+  "linebreak-style": ["error", "windows"]
+ }
 }
