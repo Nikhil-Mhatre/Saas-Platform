@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils/cn';
 import { Navbar } from '@/components/Navbar';
+import TrpcProvider from '@/components/Trpc-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,8 +27,10 @@ export default function RootLayout({
           'min-h-screen antialiased font-sans grainy',
           inter.className,
         )}>
-        <Navbar />
-        {children}
+        <TrpcProvider>
+          <Navbar />
+          {children}
+        </TrpcProvider>
       </body>
     </html>
   );
