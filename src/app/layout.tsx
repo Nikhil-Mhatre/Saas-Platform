@@ -5,6 +5,7 @@ import React from 'react';
 import { cn } from '@/lib/utils/cn';
 import { Navbar } from '@/components/Navbar';
 import TrpcProvider from '@/components/Trpc-provider';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
