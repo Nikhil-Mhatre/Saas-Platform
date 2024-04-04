@@ -5,6 +5,7 @@ import React from 'react';
 import { cn } from '@/lib/utils/cn';
 import { Navbar } from '@/components/Navbar';
 import TrpcProvider from '@/components/Trpc-provider';
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,6 +29,7 @@ export default function RootLayout({
           inter.className,
         )}>
         <TrpcProvider>
+          <Toaster />
           <Navbar />
           {children}
         </TrpcProvider>
