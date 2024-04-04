@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Dropzone from 'react-dropzone';
-import { Cloud, File } from 'lucide-react';
+import { Cloud, File, Loader2 } from 'lucide-react';
 import { useUploadThing } from '@/lib/uploadthing';
 import { trpc } from '@/lib/trpc/TRPC-Client';
 import { useRouter } from 'next/navigation';
@@ -111,18 +111,19 @@ const UploadDropZone = () => {
               {isUploading ? (
                 <div className={'w-full max-w-xs mx-auto mt-4'}>
                   <Progress
+                    colorIndicator={
+                      uploadingProgress === 100 ? 'bg-green-700' : undefined
+                    }
                     value={uploadingProgress}
                     className='h-1 w-full bg-zinc-200'
                   />
+                  {uploadingProgress === 100 ? (
+                    <div className='flex gap-1 justify-center items-center text-zinc-700 text-center pt-2'>
+                      <Loader2 className='h-3 w-3 animate-spin' />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
-
-              {/* <input
-                className='hidden'
-                type='file'
-                id='dropzone-file'
-                {...getInputProps()}
-              /> */}
             </label>
           </div>
         </div>
