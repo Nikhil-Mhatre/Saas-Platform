@@ -1,12 +1,54 @@
+/* eslint-disable no-nested-ternary */
+
 'use client';
 
 import React, { useState } from 'react';
 import UploadButton from '@/components/UploadButton';
 import { trpc } from '@/lib/trpc/TRPC-Client';
 import { Ghost, Loader2, MessageSquare, Plus, Trash } from 'lucide-react';
-import { Button } from './ui/button';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { Button } from './ui/button';
+
+const MockedFileSkeleton = () => (
+  <ul className='mt-8 grid grid-cols-1 gap-6 divide-y divide-zinc-200 md:grid-cols-2 lg:grid-cols-3'>
+    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+      <li
+        key={value}
+        className='col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow transition hover:shadow-lg'>
+        <div className='flex flex-col gap-2'>
+          <div className='pt-6 px-6 flex w-full items-center justify-between space-x-6'>
+            <div className='h-10 w-10 flex-shrink-0 rounded-full bg-gray-200' />
+            <div className='flex-1 truncate'>
+              <div className='flex items-center space-x-3'>
+                <h3 className='truncate text-lg font-medium text-gray-200'>
+                  **************
+                </h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className='px-6 mt-4 grid grid-cols-3 place-items-center py-2 gap-6 text-xs text-zinc-500'>
+          <div className='flex items-center gap-2'>
+            {/* <Plus className='h-4 w-4' />
+                {format(new Date(file.createdAt), 'dd MMM yyyy')} */}
+            <div className='h-5 w-20 bg-gray-200' />
+          </div>
+
+          <div className='flex items-center gap-2'>
+            <div className='h-5 w-20 bg-gray-200' />
+          </div>
+
+          <Button
+            size='sm'
+            className='w-full bg-gray-200'
+            variant='secondary'></Button>
+        </div>
+      </li>
+    ))}
+  </ul>
+);
 
 const Dashboard = () => {
   const [currentlyDeletingFile, setCurrentlyDeletingFile] = useState<
@@ -94,7 +136,7 @@ const Dashboard = () => {
         //   className='my-2'
         //   count={3}
         // />
-        <FileSkeleton Num_of_Skeletons={9} />
+        <MockedFileSkeleton />
       ) : (
         <div className='mt-16 flex flex-col items-center gap-2'>
           <Ghost className='h-8 w-8 text-zinc-800' />
@@ -103,46 +145,6 @@ const Dashboard = () => {
         </div>
       )}
     </main>
-  );
-};
-
-const FileSkeleton = ({ Num_of_Skeletons }: { Num_of_Skeletons: number }) => {
-  return (
-    <ul className='mt-8 grid grid-cols-1 gap-6 divide-y divide-zinc-200 md:grid-cols-2 lg:grid-cols-3'>
-      {Array.from({ length: Num_of_Skeletons }).map(() => (
-        <li className='col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow transition hover:shadow-lg'>
-          <div className='flex flex-col gap-2'>
-            <div className='pt-6 px-6 flex w-full items-center justify-between space-x-6'>
-              <div className='h-10 w-10 flex-shrink-0 rounded-full bg-gray-200' />
-              <div className='flex-1 truncate'>
-                <div className='flex items-center space-x-3'>
-                  <h3 className='truncate text-lg font-medium text-gray-200'>
-                    **************
-                  </h3>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='px-6 mt-4 grid grid-cols-3 place-items-center py-2 gap-6 text-xs text-zinc-500'>
-            <div className='flex items-center gap-2'>
-              {/* <Plus className='h-4 w-4' />
-                {format(new Date(file.createdAt), 'dd MMM yyyy')} */}
-              <div className='h-5 w-20 bg-gray-200' />
-            </div>
-
-            <div className='flex items-center gap-2'>
-              <div className='h-5 w-20 bg-gray-200' />
-            </div>
-
-            <Button
-              size='sm'
-              className='w-full bg-gray-200'
-              variant='secondary'></Button>
-          </div>
-        </li>
-      ))}
-    </ul>
   );
 };
 
