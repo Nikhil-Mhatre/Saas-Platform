@@ -65,19 +65,27 @@ export const appRouter = router({
 
       return file;
     }),
-  getFile: privateProcedure
-    .input(z.object({ key: z.string() }))
+  uploadFileToDB: privateProcedure
+    .input(z.object({ key: z.string(), name: z.string(), url: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { userId } = ctx;
-      const file = await db.file.findFirst({
-        where: {
+
+      const uploadedFile = await db.file.create({
+        data: {
           key: input.key,
+          name: input.name,
+          url: input.url,
           userId,
+          uploadStatus: 'PROCESSING',
         },
       });
 
-      if (!file) throw new TRPCError({ code: 'NOT_FOUND' });
-      return file;
+      if (!uploadedFile)
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Unable to upload file to DB',
+        });
+      return uploadedFile;
     }),
 });
 

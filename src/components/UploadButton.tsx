@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Dropzone from 'react-dropzone';
 import { Cloud, File, Loader2 } from 'lucide-react';
-import { useUploadThing } from '@/lib/uploadthing';
 import { trpc } from '@/lib/trpc/TRPC-Client';
 import { useRouter } from 'next/navigation';
+import { UploadFileToStorage } from '@/lib/cloudinary';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
@@ -14,14 +14,18 @@ import { useToast } from './ui/use-toast';
 const UploadDropZone = () => {
   const { toast } = useToast();
   const router = useRouter();
-  const { startUpload } = useUploadThing('pdfUploader');
 
-  const { mutate: startPolling } = trpc.getFile.useMutation({
+  const { mutate: uploadFileToDB } = trpc.uploadFileToDB.useMutation({
     onSuccess: (file) => {
       router.push(`/dashboard/${file.id}`);
     },
-    retry: true,
-    retryDelay: 1000,
+    onError: (error) => {
+      toast({
+        title: `Failed to Upload File`,
+        description: `${error.message}`,
+        variant: 'destructive',
+      });
+    },
   });
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -51,35 +55,29 @@ const UploadDropZone = () => {
         const progressInterval = startSimulateProgress();
 
         // TODO: File Uploading
-        // await new Promise((resolve) => {
-        //   setTimeout(resolve, 5000);
-        // });
 
-        const res = await startUpload(acceptedFile);
+        const file = acceptedFile[0] as File;
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
 
-        if (!res) {
+        const isFileUploaded = await UploadFileToStorage(buffer, file.name);
+
+        if (isFileUploaded?.http_code)
           return toast({
-            title: 'Something Went Wrong',
-            description: 'Please try againg later',
+            title: `Failed to Upload File`,
+            description: `${isFileUploaded.message}`,
             variant: 'destructive',
           });
-        }
 
-        const [fileResponse] = res;
-        const { key } = fileResponse;
-
-        if (!key) {
-          return toast({
-            title: 'Something Went Wrong',
-            description: 'Please try againg later',
-            variant: 'destructive',
-          });
-        }
+        uploadFileToDB({
+          key: isFileUploaded?.public_id,
+          name: isFileUploaded?.original_filename,
+          url: isFileUploaded?.secure_url,
+        });
 
         clearInterval(progressInterval);
         setUploadingProgresss(100);
-
-        return startPolling({ key });
+        return null;
       }}>
       {({ getRootProps, acceptedFiles }) => (
         <div

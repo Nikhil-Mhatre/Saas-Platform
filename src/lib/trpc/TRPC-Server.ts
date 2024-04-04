@@ -5,7 +5,7 @@ import { TRPCError, initTRPC } from '@trpc/server';
  * Should be done only once per backend!
  */
 const t = initTRPC.create();
-const middleware = t.middleware;
+const { middleware } = t;
 
 /**
  * Middleware that will verify if user is
