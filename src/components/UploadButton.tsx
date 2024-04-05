@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Dropzone from 'react-dropzone';
 import { Cloud, File, Loader2 } from 'lucide-react';
-import { trpc } from '@/lib/trpc/TRPC-Client';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { useRouter } from 'next/navigation';
-import { UploadFileToStorage } from '@/lib/cloudinary';
+import { trpc } from '@/lib/trpc/TRPC-Client';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
@@ -19,10 +19,10 @@ const UploadDropZone = () => {
     onSuccess: (file) => {
       router.push(`/dashboard/${file.id}`);
     },
-    onError: (error) => {
+    onError: (err) => {
       toast({
-        title: `Failed to Upload File`,
-        description: `${error.message}`,
+        title: `Failed to Upload File to DB`,
+        description: `${err.message}`,
         variant: 'destructive',
       });
     },
@@ -47,38 +47,39 @@ const UploadDropZone = () => {
     return progressInterval;
   };
 
+  const onDropHandler = async (acceptedFile: File[]) => {
+    setIsUploading(true);
+    const progressInterval = startSimulateProgress();
+
+    const file = acceptedFile[0];
+
+    try {
+      const data = await uploadToCloudinary(file);
+
+      uploadFileToDB({
+        key: data.public_id,
+        name: data.original_filename,
+        url: data.secure_url,
+      });
+
+      clearInterval(progressInterval);
+      setUploadingProgresss(100);
+      return null;
+    } catch (error) {
+      setUploadingProgresss(0);
+      setIsUploading(false);
+      acceptedFile.pop();
+      return toast({
+        title: `Failed to Upload File to Storage`,
+        description: `Try Aagin Later`,
+        variant: 'destructive',
+      });
+    }
+  };
   return (
     <Dropzone
       multiple={false}
-      onDrop={async (acceptedFile) => {
-        setIsUploading(true);
-        const progressInterval = startSimulateProgress();
-
-        // TODO: File Uploading
-
-        const file = acceptedFile[0] as File;
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
-
-        const isFileUploaded = await UploadFileToStorage(buffer, file.name);
-
-        if (isFileUploaded?.http_code)
-          return toast({
-            title: `Failed to Upload File`,
-            description: `${isFileUploaded.message}`,
-            variant: 'destructive',
-          });
-
-        uploadFileToDB({
-          key: isFileUploaded?.public_id,
-          name: isFileUploaded?.original_filename,
-          url: isFileUploaded?.secure_url,
-        });
-
-        clearInterval(progressInterval);
-        setUploadingProgresss(100);
-        return null;
-      }}>
+      onDrop={onDropHandler}>
       {({ getRootProps, acceptedFiles }) => (
         <div
           {...getRootProps()}

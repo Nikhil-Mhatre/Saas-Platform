@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { db } from '@/db';
 import { z } from 'zod';
 import { privateProcedure, publicProcedure, router } from './TRPC-Server';
+import { deleteFileFromCloudinary } from '../cloudinary';
 
 export const appRouter = router({
   // Authenticating User
@@ -56,6 +57,14 @@ export const appRouter = router({
       });
 
       if (!file) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      const isFileDeleteFromStorage = await deleteFileFromCloudinary(file.key);
+
+      if (!isFileDeleteFromStorage)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Unable to delete from storage',
+        });
 
       await db.file.delete({
         where: {

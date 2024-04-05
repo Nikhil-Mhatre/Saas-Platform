@@ -9,6 +9,7 @@ import { Ghost, Loader2, MessageSquare, Plus, Trash } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
+import { useToast } from './ui/use-toast';
 
 const MockedFileSkeleton = () => (
   <ul className='mt-8 grid grid-cols-1 gap-6 divide-y divide-zinc-200 md:grid-cols-2 lg:grid-cols-3'>
@@ -56,6 +57,7 @@ const Dashboard = () => {
   >(null);
 
   const utils = trpc.useUtils();
+  const { toast } = useToast();
   const { data: files, isLoading } = trpc.getUserFiles.useQuery(undefined);
   const { mutate: deleteFile } = trpc.deleteFile.useMutation({
     onSuccess: () => {
@@ -66,6 +68,13 @@ const Dashboard = () => {
     },
     onSettled() {
       setCurrentlyDeletingFile(null);
+    },
+    onError(err) {
+      toast({
+        title: `${err.message}`,
+        description: `${err.data?.code}`,
+        variant: 'destructive',
+      });
     },
   });
 

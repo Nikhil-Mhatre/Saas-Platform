@@ -1,35 +1,63 @@
-import {
-  UploadApiErrorResponse,
-  UploadApiResponse,
-  v2 as cloudinary,
-} from 'cloudinary';
+import { UploadApiResponse, v2 as cloudinary } from 'cloudinary';
+import { ApiError } from '../utils/Api-Error';
 
-cloudinary.config({
-  cloud_name: 'dshdka5xi',
-  api_key: '963588231158355',
-  api_secret: 'I6BP2wIGTuXo8eZmuSiQPN7EAGc',
+const cloudinaryConfig = cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+  api_secret: process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
   secure: true,
 });
 
-export const UploadFileToStorage = async (
-  buffer: Uint8Array,
-  fileName: string,
-): Promise<(UploadApiResponse | undefined) | UploadApiErrorResponse> =>
-  new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          resource_type: 'image',
-          chunk_size: 4000000,
-          filename_override: fileName,
-        },
-        async (error, result) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(result);
-        },
-      )
-      .end(buffer);
-  });
+export async function getSignature() {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder: 'next' },
+    cloudinaryConfig.api_secret as string,
+  );
+
+  return { timestamp, signature };
+}
+
+export async function uploadToCloudinary(file: File) {
+  const { timestamp, signature } = await getSignature();
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append(
+    'api_key',
+    process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY as string,
+  );
+  formData.append('signature', signature);
+  formData.append('timestamp', String(timestamp));
+  formData.append('folder', 'next');
+
+  try {
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUDNAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      throw new ApiError(response.status, response.statusText);
+    }
+    const data: UploadApiResponse = await response.json();
+    return data;
+  } catch (error: any) {
+    throw new ApiError(
+      501,
+      error?.message || 'Failed to Upload File on Cloudinary',
+    );
+  }
+}
+
+export async function deleteFileFromCloudinary(fileId: string) {
+  const data = await cloudinary.uploader
+    .destroy(fileId)
+    .then(() => true)
+    .catch(() => false);
+
+  return data;
+}
