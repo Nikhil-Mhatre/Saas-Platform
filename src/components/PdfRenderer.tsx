@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils/cn';
 import { useToast } from './ui/use-toast';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import ToolTip from './ToolTip';
 
 interface PdfRendererProps {
   url: string;
@@ -68,20 +69,25 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
             aria-label='previous page'>
             <ChevronDown className='h-4 w-4' />
           </Button>
+
           {/* PDF Page Searcher */}
           <div className='flex items-center gap-1.5'>
-            <Input
-              {...register('page')}
-              className={cn(
-                'w-12 h-8',
-                errors.page && 'focus-visible:ring-red-500',
-              )}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSubmit(handlePageSubmit)();
-                }
-              }}
-            />
+            <ToolTip toolTipContent='Search Page'>
+              <Input
+                autoComplete='off'
+                {...register('page')}
+                className={cn(
+                  'w-12 h-8',
+                  errors.page && 'focus-visible:ring-red-500',
+                )}
+                // This will Work Only when Press Enter
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmit(handlePageSubmit)();
+                  }
+                }}
+              />
+            </ToolTip>
             <p className='text-zinc-700 text-sm space-x-1'>
               <span>/</span>
               <span>{numPage || 'X'}</span>
