@@ -63,7 +63,14 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
           <Button
             disabled={currPage <= 1}
             onClick={() => {
-              setCurrPage((prev) => (prev - 1 > 1 ? prev - 1 : 1));
+              setCurrPage((prev) => {
+                if (prev - 1 > 1) {
+                  setValue('page', String(prev - 1));
+                  return prev - 1;
+                }
+                setValue('page', String(1));
+                return 1;
+              });
             }}
             variant={'ghost'}
             aria-label='previous page'>
@@ -97,9 +104,14 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
           <Button
             disabled={numPage === undefined || currPage === numPage}
             onClick={() => {
-              setCurrPage((prev) =>
-                prev + 1 > numPage! ? numPage! : prev + 1,
-              );
+              setCurrPage((prev) => {
+                if (prev + 1 > numPage!) {
+                  setValue('page', String(numPage!));
+                  return numPage!;
+                }
+                setValue('page', String(prev + 1));
+                return prev + 1;
+              });
             }}
             variant={'ghost'}
             aria-label='previous page'>
