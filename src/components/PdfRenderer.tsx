@@ -1,6 +1,12 @@
 'use client';
 
-import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  RotateCw,
+  Search,
+} from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -36,6 +42,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
   const [numPage, setNumPage] = useState<number>();
   const [currPage, setCurrPage] = useState<number>(1);
   const [scale, setScale] = useState<number>(1);
+  const [rotate, setRotate] = useState<number>(0);
 
   const CustomPageValidator = z.object({
     page: z
@@ -127,8 +134,8 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
           </Button>
         </div>
 
-        {/* Zoom Button */}
         <div className='space-x-2'>
+          {/* Zoom Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -153,6 +160,16 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Rotate Button */}
+          <Button
+            onClick={() => {
+              setRotate((prev) => (prev + 90 < 360 ? prev + 90 : 0));
+            }}
+            variant={'ghost'}
+            aria-label='rotate 90 degree'>
+            <RotateCw className='h-4 w-4' />
+          </Button>
         </div>
       </div>
 
@@ -180,6 +197,7 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
               file={url}
               className={'max-h-full'}>
               <Page
+                rotate={rotate}
                 loading={
                   <div className='flex justify-center'>
                     <Loader2 className='my-24 h-12 w-12 animate-spin' />
