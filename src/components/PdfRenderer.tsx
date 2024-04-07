@@ -21,6 +21,7 @@ import { useToast } from './ui/use-toast';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import ToolTip from './ToolTip';
+import PdfFullscreen from './PdfFullscreen';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,6 +147,12 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              <DropdownMenuItem onSelect={() => setScale(0.5)}>
+                50%
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setScale(0.75)}>
+                75%
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setScale(1)}>
                 100%
               </DropdownMenuItem>
@@ -170,6 +177,8 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
             aria-label='rotate 90 degree'>
             <RotateCw className='h-4 w-4' />
           </Button>
+
+          <PdfFullscreen fileUrl={url} />
         </div>
       </div>
 
@@ -198,11 +207,6 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
               className={'max-h-full'}>
               <Page
                 rotate={rotate}
-                loading={
-                  <div className='flex justify-center'>
-                    <Loader2 className='my-24 h-12 w-12 animate-spin' />
-                  </div>
-                }
                 scale={scale}
                 width={width || 1}
                 pageNumber={currPage}
