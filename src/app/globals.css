@@ -57,3 +57,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* .simplebar-scrollbar {
+  @apply bg-purple-500;
+  @apply rounded-lg;
+} */
+
+
+.simplebar-scrollbar::before {
+  @apply bg-purple-500 !important;
+}

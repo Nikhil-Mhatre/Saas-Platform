@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn';
 import { Navbar } from '@/components/Navbar';
 import TrpcProvider from '@/components/Trpc-provider';
 import { Toaster } from '@/components/ui/toaster';
+import 'simplebar-react/dist/simplebar.min.css'
 
 const inter = Inter({ subsets: ['latin'] });
 
