@@ -14,9 +14,19 @@ import { useToast } from './ui/use-toast';
 const UploadDropZone = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const utils = trpc.useUtils();
+
+  const { mutate: processFile } = trpc.processFile.useMutation({
+    onSuccess: () => {
+      utils.getFileUploadStatus.invalidate();
+    },
+  });
 
   const { mutate: uploadFileToDB } = trpc.uploadFileToDB.useMutation({
-    onSuccess: (file) => {
+    onSuccess: async (file) => {
+      // If file is saved in DB then start processing
+      // in other
+      processFile({ fileId: file.id, fileUrl: file.url });
       router.push(`/dashboard/${file.id}`);
     },
     onError: (err) => {

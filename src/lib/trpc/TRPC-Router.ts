@@ -2,8 +2,12 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { TRPCError } from '@trpc/server';
 import { db } from '@/db';
 import { z } from 'zod';
+import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { PineconeStore } from '@langchain/pinecone';
 import { privateProcedure, publicProcedure, router } from './TRPC-Server';
-import { deleteFileFromCloudinary } from '../cloudinary';
+import { deleteFileFromCloudinary, getFileFromCloudinary } from '../cloudinary';
+import { pinecone } from '../pinecone';
 
 export const appRouter = router({
   // Authenticating User
@@ -109,6 +113,46 @@ export const appRouter = router({
       if (!file) return { status: 'PENDING' as const };
 
       return { status: file.uploadStatus };
+    }),
+  processFile: privateProcedure
+    .input(z.object({ fileUrl: z.string(), fileId: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        const blob = await getFileFromCloudinary(input.fileUrl);
+
+        const loader = new PDFLoader(blob); // loaded page to memory
+        const pageLevelDocs = await loader.load();
+        // const pageAmt = pageLevelDocs.length;
+
+        // vectorized and index entire document
+
+        const pineconeIndex = pinecone.index('pdfmaestro');
+        const embeddings = new OpenAIEmbeddings({
+          openAIApiKey: process.env.OPENAI_API_KEY,
+        });
+        await PineconeStore.fromDocuments(pageLevelDocs, embeddings, {
+          pineconeIndex,
+          namespace: input.fileId,
+        });
+
+        await db.file.update({
+          data: {
+            uploadStatus: 'SUCCESS',
+          },
+          where: {
+            id: input.fileId,
+          },
+        });
+      } catch (error) {
+        await db.file.update({
+          data: {
+            uploadStatus: 'FAILED',
+          },
+          where: {
+            id: input.fileId,
+          },
+        });
+      }
     }),
 });
 

@@ -61,3 +61,19 @@ export async function deleteFileFromCloudinary(fileId: string) {
 
   return data;
 }
+
+export async function getFileFromCloudinary(url: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new ApiError(response.status, response.statusText);
+    }
+    const blob = await response.blob();
+    return blob;
+  } catch (error: any) {
+    throw new ApiError(
+      501,
+      error?.message || 'Failed to Retrieve File from Cloudinary',
+    );
+  }
+}
