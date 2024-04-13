@@ -1,17 +1,17 @@
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { TRPCError } from '@trpc/server';
-import { db } from '@/db';
-import { z } from 'zod';
-import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { PineconeStore } from '@langchain/pinecone';
-import { INFINITE_QUERY_LIMIT } from '@/config/infinite-query';
-import { PLANS } from '@/config/stripePlans';
-import { privateProcedure, publicProcedure, router } from './TRPC-Server';
-import { deleteFileFromCloudinary, getFileFromCloudinary } from '../cloudinary';
-import { pinecone } from '../pinecone';
-import { absoluteURL } from '../utils/absoluteUrl';
-import { getUserSubscriptionPlan, stripe } from '../stripe';
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { TRPCError } from "@trpc/server";
+import { db } from "@/db";
+import { z } from "zod";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { PineconeStore } from "@langchain/pinecone";
+import { INFINITE_QUERY_LIMIT } from "@/config/infinite-query";
+import { PLANS } from "@/config/stripePlans";
+import { privateProcedure, publicProcedure, router } from "./TRPC-Server";
+import { deleteFileFromCloudinary, getFileFromCloudinary } from "../cloudinary";
+import { pinecone } from "../pinecone";
+import { absoluteURL } from "../utils/absoluteUrl";
+import { getUserSubscriptionPlan, stripe } from "../stripe";
 
 export const appRouter = router({
   // Authenticating User
@@ -19,20 +19,18 @@ export const appRouter = router({
     const { getUser } = getKindeServerSession();
     const user = await getUser();
 
-    if (!user?.id || !user.email)
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-      });
+    if (!user?.id || !user?.email)
+      throw new TRPCError({ code: "UNAUTHORIZED" });
 
-    // check if user is in DB
+    // check if the user is in the database
     const dbUser = await db.user.findFirst({
       where: {
-        id: user.id,
+        id: user?.id,
       },
     });
 
-    // user is not present then create new
     if (!dbUser) {
+      // create user in db
       await db.user.create({
         data: {
           id: user.id,
@@ -64,14 +62,14 @@ export const appRouter = router({
         },
       });
 
-      if (!file) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
 
       const isFileDeleteFromStorage = await deleteFileFromCloudinary(file.key);
 
       if (!isFileDeleteFromStorage)
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Unable to delete from storage',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to delete from storage",
         });
 
       await db.file.delete({
@@ -93,14 +91,14 @@ export const appRouter = router({
           name: input.name,
           url: input.url,
           userId,
-          uploadStatus: 'PROCESSING',
+          uploadStatus: "PROCESSING",
         },
       });
 
       if (!uploadedFile)
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Unable to upload file to DB',
+          code: "NOT_FOUND",
+          message: "Unable to upload file to DB",
         });
       return uploadedFile;
     }),
@@ -114,7 +112,7 @@ export const appRouter = router({
         },
       });
 
-      if (!file) return { status: 'PENDING' as const };
+      if (!file) return { status: "PENDING" as const };
 
       return { status: file.uploadStatus };
     }),
@@ -130,7 +128,7 @@ export const appRouter = router({
 
         // vectorized and index entire document
 
-        const pineconeIndex = pinecone.index('pdfmaestro');
+        const pineconeIndex = pinecone.index("pdfmaestro");
         const embeddings = new OpenAIEmbeddings({
           openAIApiKey: process.env.OPENAI_API_KEY,
         });
@@ -141,7 +139,7 @@ export const appRouter = router({
 
         await db.file.update({
           data: {
-            uploadStatus: 'SUCCESS',
+            uploadStatus: "SUCCESS",
           },
           where: {
             id: input.fileId,
@@ -150,7 +148,7 @@ export const appRouter = router({
       } catch (error) {
         await db.file.update({
           data: {
-            uploadStatus: 'FAILED',
+            uploadStatus: "FAILED",
           },
           where: {
             id: input.fileId,
@@ -164,7 +162,7 @@ export const appRouter = router({
         limit: z.number().min(1).max(100).nullish(),
         cursor: z.string().nullish(),
         fileId: z.string(),
-      }),
+      })
     )
     .query(async ({ ctx, input }) => {
       const { userId } = ctx;
@@ -178,7 +176,7 @@ export const appRouter = router({
         },
       });
 
-      if (!file) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
 
       const messages = await db.message.findMany({
         take: limit + 1,
@@ -186,7 +184,7 @@ export const appRouter = router({
           fileId,
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
         cursor: cursor ? { id: cursor } : undefined,
         select: {
@@ -212,9 +210,9 @@ export const appRouter = router({
   createStripeSession: privateProcedure.mutation(async ({ ctx }) => {
     const { userId } = ctx;
 
-    const billingUrl = absoluteURL('/dashboard/billing');
+    const billingUrl = absoluteURL("/dashboard/billing");
 
-    if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+    if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
     const dbUser = await db.user.findFirst({
       where: {
@@ -222,7 +220,7 @@ export const appRouter = router({
       },
     });
 
-    if (!dbUser) throw new TRPCError({ code: 'UNAUTHORIZED' });
+    if (!dbUser) throw new TRPCError({ code: "UNAUTHORIZED" });
 
     const subcriptionPlan = await getUserSubscriptionPlan();
 
@@ -238,10 +236,10 @@ export const appRouter = router({
     const stripeSession = await stripe.checkout.sessions.create({
       success_url: billingUrl,
       cancel_url: billingUrl,
-      mode: 'subscription',
+      mode: "subscription",
       line_items: [
         {
-          price: PLANS.find((plan) => plan.name === 'Pro')?.price.priceIds.test,
+          price: PLANS.find((plan) => plan.name === "Pro")?.price.priceIds.test,
           quantity: 1,
         },
       ],

@@ -1,12 +1,13 @@
-import { db } from '@/db';
-import { pinecone } from '@/lib/pinecone';
-import { SendMessageValidator } from '@/lib/validators/sendMessageValidator';
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { PineconeStore } from '@langchain/pinecone';
-import { NextRequest } from 'next/server';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
-import { openai } from '../../../lib/openai';
+import { db } from "@/db";
+import { pinecone } from "@/lib/pinecone";
+import { SendMessageValidator } from "@/lib/validators/sendMessageValidator";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { PineconeStore } from "@langchain/pinecone";
+import { NextRequest } from "next/server";
+import { OpenAIStream, StreamingTextResponse } from "ai";
+import { openai } from "../../../lib/openai";
+import { Message } from "@prisma/client";
 
 export const POST = async (req: NextRequest) => {
   // Endpoint for asking a question to a pdf file
@@ -17,7 +18,7 @@ export const POST = async (req: NextRequest) => {
 
   const userId = user?.id;
 
-  if (!userId) return new Response('Unauthorized', { status: 401 });
+  if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const { fileId, message } = SendMessageValidator.parse(body);
 
@@ -28,7 +29,7 @@ export const POST = async (req: NextRequest) => {
     },
   });
 
-  if (!file) return new Response('Not Found', { status: 404 });
+  if (!file) return new Response("Not Found", { status: 404 });
 
   await db.message.create({
     data: {
@@ -42,7 +43,7 @@ export const POST = async (req: NextRequest) => {
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
-  const pineconeIndex = pinecone.index('pdfmaestro');
+  const pineconeIndex = pinecone.index("pdfmaestro");
 
   const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
     pineconeIndex,
@@ -56,42 +57,42 @@ export const POST = async (req: NextRequest) => {
       fileId,
     },
     orderBy: {
-      createdAt: 'asc',
+      createdAt: "asc",
     },
     take: 6,
   });
 
-  const formattedPrevMessages = prevMessages.map((msg) => ({
-    role: msg.isUserMessage ? ('user' as const) : ('assistant' as const),
+  const formattedPrevMessages = prevMessages.map((msg: Message) => ({
+    role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
     content: msg.text,
   }));
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
+    model: "gpt-3.5-turbo",
     temperature: 0,
     stream: true,
     messages: [
       {
-        role: 'system',
+        role: "system",
         content:
-          'Use the following pieces of context (or previous conversaton if needed) to answer the users question in markdown format.',
+          "Use the following pieces of context (or previous conversaton if needed) to answer the users question in markdown format.",
       },
       {
-        role: 'user',
+        role: "user",
         content: `Use the following pieces of context (or previous conversaton if needed) to answer the users question in markdown format. \nIf you don't know the answer, just say that you don't know, don't try to make up an answer.
         
   \n----------------\n
   
   PREVIOUS CONVERSATION:
   ${formattedPrevMessages.map((msg) => {
-    if (msg.role === 'user') return `User: ${msg.content}\n`;
+    if (msg.role === "user") return `User: ${msg.content}\n`;
     return `Assistant: ${msg.content}\n`;
   })}
   
   \n----------------\n
   
   CONTEXT:
-  ${results.map((r) => r.pageContent).join('\n\n')}
+  ${results.map((r) => r.pageContent).join("\n\n")}
   
   USER INPUT: ${message}`,
       },
