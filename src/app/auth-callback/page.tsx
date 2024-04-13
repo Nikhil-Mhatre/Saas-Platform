@@ -25,7 +25,7 @@ const Page = () => {
         router.push('/');
       }
     }
-  }, [isSuccess, isError, origin, router]);
+  }, [isSuccess, isError, origin, router, error?.data?.code]);
 
   if (isLoading) {
     return (
@@ -38,6 +38,7 @@ const Page = () => {
       </div>
     );
   }
+  return null;
 };
 
 export default Page;

@@ -7,8 +7,11 @@ import {
 import React from 'react';
 
 interface ItoolTip {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   toolTipContent: string;
+  TooltipClass?: string;
+  TooltipTriggerClass?: string;
+  TooltipContentClass?: string;
 }
 
 const ToolTip: React.FC<ItoolTip> = ({ children, toolTipContent }) => (

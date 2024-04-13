@@ -6,9 +6,12 @@ import { PDFLoader } from 'langchain/document_loaders/fs/pdf';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PineconeStore } from '@langchain/pinecone';
 import { INFINITE_QUERY_LIMIT } from '@/config/infinite-query';
+import { PLANS } from '@/config/stripePlans';
 import { privateProcedure, publicProcedure, router } from './TRPC-Server';
 import { deleteFileFromCloudinary, getFileFromCloudinary } from '../cloudinary';
 import { pinecone } from '../pinecone';
+import { absoluteURL } from '../utils/absoluteUrl';
+import { getUserSubscriptionPlan, stripe } from '../stripe';
 
 export const appRouter = router({
   // Authenticating User
@@ -206,6 +209,49 @@ export const appRouter = router({
         nextCursor,
       };
     }),
+  createStripeSession: privateProcedure.mutation(async ({ ctx }) => {
+    const { userId } = ctx;
+
+    const billingUrl = absoluteURL('/dashboard/billing');
+
+    if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+    const dbUser = await db.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!dbUser) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+    const subcriptionPlan = await getUserSubscriptionPlan();
+
+    if (subcriptionPlan.isSubscribed && dbUser.stripeCustomerId) {
+      const stripeSession = await stripe.billingPortal.sessions.create({
+        customer: dbUser.stripeCustomerId,
+        return_url: billingUrl,
+      });
+
+      return { url: stripeSession.url };
+    }
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      success_url: billingUrl,
+      cancel_url: billingUrl,
+      mode: 'subscription',
+      line_items: [
+        {
+          price: PLANS.find((plan) => plan.name === 'Pro')?.price.priceIds.test,
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId,
+      },
+    });
+
+    return { url: stripeSession.url };
+  }),
 });
 
 // Export type router type signature,

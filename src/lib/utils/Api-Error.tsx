@@ -11,9 +11,13 @@
  */
 class ApiError extends Error {
   statusCode: number;
+
   data: null;
+
   success: boolean;
+
   errors: string[];
+
   constructor(
     statusCode: number,
     message = 'Something went wrong',

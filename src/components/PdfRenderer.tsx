@@ -100,8 +100,8 @@ const PdfRenderer = ({ url }: PdfRendererProps) => {
                 autoComplete='off'
                 {...register('page')}
                 className={cn(
-                  'w-12 h-8',
-                  errors.page && 'focus-visible:ring-red-500',
+                  'w-12 h-8 border-none',
+                  errors.page && 'border-2 border-red-500',
                 )}
                 // This will Work Only when Press Enter
                 onKeyDown={(e) => {
