@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { trpc } from '../../lib/trpc/TRPC-Client';
 
+// eslint-disable-next-line consistent-return
 const Page = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,7 +39,6 @@ const Page = () => {
       </div>
     );
   }
-  return null;
 };
 
 export default Page;
