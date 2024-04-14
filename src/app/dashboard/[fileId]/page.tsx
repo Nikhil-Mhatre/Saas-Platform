@@ -1,32 +1,35 @@
-import PdfRenderer from '@/components/PdfRenderer';
-import ChatWrapper from '@/components/chat/ChatWrapper';
-import { db } from '@/db';
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { notFound, redirect } from 'next/navigation';
+import ChatWrapper from '@/components/chat/ChatWrapper'
+import PdfRenderer from '@/components/PdfRenderer'
+import { db } from '@/db'
+import { getUserSubscriptionPlan } from '@/lib/stripe'
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
+import { notFound, redirect } from 'next/navigation'
 
-import React from 'react';
-
-interface pageProps {
+interface PageProps {
   params: {
-    fileId: string;
-  };
+    fileid: string
+  }
 }
 
-const page = async ({ params }: pageProps) => {
-  const { fileId } = params;
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
+const Page = async ({ params }: PageProps) => {
+  const { fileid } = params
 
-  if (!user || !user.id) redirect(`/auth-callback?origin=dashboard/${fileId}`);
+  const { getUser } = getKindeServerSession()
+  const user = getUser()
+
+  if (!user || !user.id)
+    redirect(`/auth-callback?origin=dashboard/${fileid}`)
 
   const file = await db.file.findFirst({
     where: {
-      id: fileId,
+      id: fileid,
       userId: user.id,
     },
-  });
+  })
 
-  if (!file) notFound();
+  if (!file) notFound()
+
+  const plan = await getUserSubscriptionPlan()
 
   return (
     <div className='flex-1 justify-between flex flex-col h-[calc(100vh-3.5rem)]'>
@@ -40,11 +43,11 @@ const page = async ({ params }: pageProps) => {
         </div>
 
         <div className='shrink-0 flex-[0.75] border-t border-gray-200 lg:w-96 lg:border-l lg:border-t-0'>
-          <ChatWrapper fileId={file.id} />
+          <ChatWrapper isSubscribed={plan.isSubscribed} fileId={file.id} />
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default page;
+export default Page

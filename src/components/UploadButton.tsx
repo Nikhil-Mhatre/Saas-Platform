@@ -1,96 +1,101 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import Dropzone from 'react-dropzone';
-import { Cloud, File, Loader2 } from 'lucide-react';
-import { uploadToCloudinary } from '@/lib/cloudinary';
-import { useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc/TRPC-Client';
-import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
-import { Button } from './ui/button';
-import { Progress } from './ui/progress';
-import { useToast } from './ui/use-toast';
+import { useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from './ui/dialog'
+import { Button } from './ui/button'
 
-const UploadDropZone = () => {
-  const { toast } = useToast();
-  const router = useRouter();
-  const utils = trpc.useUtils();
+import Dropzone from 'react-dropzone'
+import { Cloud, File, Loader2 } from 'lucide-react'
+import { Progress } from './ui/progress'
+import { useUploadThing } from '@/lib/uploadthing'
+import { useToast } from './ui/use-toast'
+import { trpc } from '@/app/_trpc/client'
+import { useRouter } from 'next/navigation'
 
-  const { mutate: processFile } = trpc.processFile.useMutation({
-    onSuccess: () => {
-      utils.getFileUploadStatus.invalidate();
-    },
-  });
+const UploadDropzone = ({
+  isSubscribed,
+}: {
+  isSubscribed: boolean
+}) => {
+  const router = useRouter()
 
-  const { mutate: uploadFileToDB } = trpc.uploadFileToDB.useMutation({
-    onSuccess: async (file) => {
-      // If file is saved in DB then start processing
-      // in other
-      processFile({ fileId: file.id, fileUrl: file.url });
-      router.push(`/dashboard/${file.id}`);
-    },
-    onError: (err) => {
-      toast({
-        title: `Failed to Upload File to DB`,
-        description: `${err.message}`,
-        variant: 'destructive',
-      });
-    },
-  });
+  const [isUploading, setIsUploading] =
+    useState<boolean>(false)
+  const [uploadProgress, setUploadProgress] =
+    useState<number>(0)
+  const { toast } = useToast()
 
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadingProgress, setUploadingProgresss] = useState<number>(0);
+  const { startUpload } = useUploadThing(
+    isSubscribed ? 'proPlanUploader' : 'freePlanUploader'
+  )
 
-  const startSimulateProgress = () => {
-    setUploadingProgresss(0);
-
-    const progressInterval = setInterval(() => {
-      setUploadingProgresss((prevProgress) => {
-        if (prevProgress >= 95) {
-          clearInterval(progressInterval);
-          return prevProgress;
-        }
-        return prevProgress + 15; // Progress Simulation Time
-      });
-    }, 500);
-
-    return progressInterval;
-  };
-
-  const onDropHandler = async (acceptedFile: File[]) => {
-    setIsUploading(true);
-    const progressInterval = startSimulateProgress();
-
-    const file = acceptedFile[0];
-
-    try {
-      const data = await uploadToCloudinary(file);
-
-      uploadFileToDB({
-        key: data.public_id,
-        name: data.original_filename,
-        url: data.secure_url,
-      });
-
-      clearInterval(progressInterval);
-      setUploadingProgresss(100);
-      return null;
-    } catch (error) {
-      setUploadingProgresss(0);
-      setIsUploading(false);
-      acceptedFile.pop();
-      return toast({
-        title: `Failed to Upload File to Storage`,
-        description: `Try Aagin Later`,
-        variant: 'destructive',
-      });
+  const { mutate: startPolling } = trpc.getFile.useMutation(
+    {
+      onSuccess: (file) => {
+        router.push(`/dashboard/${file.id}`)
+      },
+      retry: true,
+      retryDelay: 500,
     }
-  };
+  )
+
+  const startSimulatedProgress = () => {
+    setUploadProgress(0)
+
+    const interval = setInterval(() => {
+      setUploadProgress((prevProgress) => {
+        if (prevProgress >= 95) {
+          clearInterval(interval)
+          return prevProgress
+        }
+        return prevProgress + 5
+      })
+    }, 500)
+
+    return interval
+  }
+
   return (
     <Dropzone
       multiple={false}
-      onDrop={onDropHandler}>
-      {({ getRootProps, acceptedFiles }) => (
+      onDrop={async (acceptedFile) => {
+        setIsUploading(true)
+
+        const progressInterval = startSimulatedProgress()
+
+        // handle file uploading
+        const res = await startUpload(acceptedFile)
+
+        if (!res) {
+          return toast({
+            title: 'Something went wrong',
+            description: 'Please try again later',
+            variant: 'destructive',
+          })
+        }
+
+        const [fileResponse] = res
+
+        const key = fileResponse?.key
+
+        if (!key) {
+          return toast({
+            title: 'Something went wrong',
+            description: 'Please try again later',
+            variant: 'destructive',
+          })
+        }
+
+        clearInterval(progressInterval)
+        setUploadProgress(100)
+
+        startPolling({ key })
+      }}>
+      {({ getRootProps, getInputProps, acceptedFiles }) => (
         <div
           {...getRootProps()}
           className='border h-64 m-4 border-dashed border-gray-300 rounded-lg'>
@@ -101,10 +106,14 @@ const UploadDropZone = () => {
               <div className='flex flex-col items-center justify-center pt-5 pb-6'>
                 <Cloud className='h-6 w-6 text-zinc-500 mb-2' />
                 <p className='mb-2 text-sm text-zinc-700'>
-                  <span className='font-semibold'>Click to upload</span> or drag
-                  and drop
+                  <span className='font-semibold'>
+                    Click to upload
+                  </span>{' '}
+                  or drag and drop
                 </p>
-                <p className='text-xs text-zinc-500'>PDF (up to 4MB)</p>
+                <p className='text-xs text-zinc-500'>
+                  PDF (up to {isSubscribed ? "16" : "4"}MB)
+                </p>
               </div>
 
               {acceptedFiles && acceptedFiles[0] ? (
@@ -117,46 +126,67 @@ const UploadDropZone = () => {
                   </div>
                 </div>
               ) : null}
+
               {isUploading ? (
-                <div className={'w-full max-w-xs mx-auto mt-4'}>
+                <div className='w-full mt-4 max-w-xs mx-auto'>
                   <Progress
-                    colorIndicator={
-                      uploadingProgress === 100 ? 'bg-green-700' : undefined
+                    indicatorColor={
+                      uploadProgress === 100
+                        ? 'bg-green-500'
+                        : ''
                     }
-                    value={uploadingProgress}
+                    value={uploadProgress}
                     className='h-1 w-full bg-zinc-200'
                   />
-                  {uploadingProgress === 100 ? (
-                    <div className='flex gap-1 justify-center items-center text-zinc-700 text-center pt-2'>
+                  {uploadProgress === 100 ? (
+                    <div className='flex gap-1 items-center justify-center text-sm text-zinc-700 text-center pt-2'>
                       <Loader2 className='h-3 w-3 animate-spin' />
+                      Redirecting...
                     </div>
                   ) : null}
                 </div>
               ) : null}
+
+              <input
+                {...getInputProps()}
+                type='file'
+                id='dropzone-file'
+                className='hidden'
+              />
             </label>
           </div>
         </div>
       )}
     </Dropzone>
-  );
-};
+  )
+}
 
-const UploadButton = () => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+const UploadButton = ({
+  isSubscribed,
+}: {
+  isSubscribed: boolean
+}) => {
+  const [isOpen, setIsOpen] = useState<boolean>(false)
+
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(v) => {
-        if (!v) setIsOpen(v);
+        if (!v) {
+          setIsOpen(v)
+        }
       }}>
-      <DialogTrigger asChild>
-        <Button onClick={() => setIsOpen(true)}>Upload PDF</Button>
+      <DialogTrigger
+        onClick={() => setIsOpen(true)}
+        asChild>
+        <Button>Upload PDF</Button>
       </DialogTrigger>
+
       <DialogContent>
-        <UploadDropZone />
+        <UploadDropzone isSubscribed={isSubscribed} />
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default UploadButton;
+export default UploadButton

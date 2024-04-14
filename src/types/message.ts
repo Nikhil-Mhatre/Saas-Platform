@@ -1,15 +1,14 @@
-import { AppRouter } from '@/lib/trpc/TRPC-Router';
-import { inferRouterOutputs } from '@trpc/server';
-import React from 'react';
+import { AppRouter } from '@/trpc'
+import { inferRouterOutputs } from '@trpc/server'
 
-type RouterOutput = inferRouterOutputs<AppRouter>;
+type RouterOutput = inferRouterOutputs<AppRouter>
 
-type Message = RouterOutput['getFileMessages']['messages'];
+type Messages = RouterOutput['getFileMessages']['messages']
 
-type OmitText = Omit<Message[number], 'text'>;
+type OmitText = Omit<Messages[number], 'text'>
 
 type ExtendedText = {
-  text: string | React.JSX.Element;
-};
+  text: string | JSX.Element
+}
 
-export type ExtendedMessage = OmitText & ExtendedText;
+export type ExtendedMessage = OmitText & ExtendedText

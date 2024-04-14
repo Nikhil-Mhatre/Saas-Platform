@@ -1,12 +1,18 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
 declare global {
-  // eslint-disable-next-line no-var, vars-on-top, no-unused-vars
-  var cachedPrisma: PrismaClient | undefined;
+  // eslint-disable-next-line no-var
+  var cachedPrisma: PrismaClient
 }
 
-const cachedPrisma = global.cachedPrisma || new PrismaClient();
+let prisma: PrismaClient
+if (process.env.NODE_ENV === 'production') {
+  prisma = new PrismaClient()
+} else {
+  if (!global.cachedPrisma) {
+    global.cachedPrisma = new PrismaClient()
+  }
+  prisma = global.cachedPrisma
+}
 
-if (process.env.NODE_ENV === 'production') global.cachedPrisma = cachedPrisma;
-
-export const db = cachedPrisma;
+export const db = prisma
