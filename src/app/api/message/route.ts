@@ -1,9 +1,8 @@
 import { db } from "@/db";
 import { openai } from "@/lib/openai";
-import { getPineconeClient } from "@/lib/pinecone";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { PineconeStoreParams, PineconeStore } from "@langchain/pinecone";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { NextRequest } from "next/server";
 import { SendMessageValidator } from "@/lib/SendMessageValidator";
 
@@ -46,12 +45,14 @@ export const POST = async (req: NextRequest) => {
     openAIApiKey: process.env.OPENAI_API_KEY,
   });
 
-  const pinecone = await getPineconeClient();
-  const pineconeIndex = pinecone.Index("pdfMaestro");
-
   const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-    pineconeIndex,
-    namespace: file.id,
+    pineconeConfig: {
+      namespace: file.id,
+      indexName: "pdfmaestro",
+      config: {
+        apiKey: process.env.PINECONE_API_KEY!,
+      },
+    },
   });
 
   const results = await vectorStore.similaritySearch(message, 4);
